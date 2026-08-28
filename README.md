@@ -1,7 +1,6 @@
 # Literature Search
 
-This repository pairs the `literature-search` skill with its importable `scholar` Python
-package.
+This repository pairs the `literature-search` skill with its importable `scholar` Python package.
 
 | Path                     | Purpose                                                         |
 | ------------------------ | --------------------------------------------------------------- |
@@ -17,5 +16,4 @@ cd scripts
 uv run python -c "import scholar; print(scholar.search('quantum chemistry', limit=1))"
 ```
 
-The skill is self-contained: install or copy this repository as the `literature-search`
-skill, and use the package from its `scripts/` project.
+The skill is self-contained: install or copy this repository as the `literature-search` skill, and use the package from its `scripts/` project.
