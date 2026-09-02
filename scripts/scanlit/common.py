@@ -1,4 +1,4 @@
-"""Foundation shared across the scholar package: constants, logging, HTTP, .env
+"""Foundation shared across the scanlit package: constants, logging, HTTP, .env
 loading, record helpers, and the batch fan-out infrastructure."""
 import concurrent.futures
 import functools
@@ -15,7 +15,7 @@ import httpx
 DEFAULT_SOURCES = ["openalex", "crossref", "arxiv", "pubmed", "europepmc", "semanticscholar"]
 REQUEST_TIMEOUT = httpx.Timeout(30.0)
 PER_RUN_TIMEOUT = 45.0  # A source still running after this is recorded as timed out, not awaited forever.
-DEFAULT_LOG_PATH = os.path.join(tempfile.gettempdir(), "scholar.log")
+DEFAULT_LOG_PATH = os.path.join(tempfile.gettempdir(), "scanlit.log")
 
 RANK_WEIGHTS = {
     "lexical_relevance": 1.0,
@@ -38,7 +38,7 @@ FACET_FIELDS = {
 }
 
 
-logger = logging.getLogger("scholar")
+logger = logging.getLogger("scanlit")
 
 
 def configure_logging(log_path: str = DEFAULT_LOG_PATH) -> None:

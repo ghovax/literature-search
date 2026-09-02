@@ -204,9 +204,9 @@ def _source_semanticscholar(options: dict) -> list[dict]:
     if options.get("from_year") and options.get("to_year"):
         keyword_arguments["year"] = f"{options['from_year']}-{options['to_year']}"
     api_key = options.get("s2_api_key")
-    scholar = (SemanticScholar(api_key=api_key, timeout=30, retry=True) if api_key
-               else SemanticScholar(timeout=30, retry=True))
-    results: Any = scholar.search_paper(**keyword_arguments)
+    s2_client = (SemanticScholar(api_key=api_key, timeout=30, retry=True) if api_key
+                 else SemanticScholar(timeout=30, retry=True))
+    results: Any = s2_client.search_paper(**keyword_arguments)
     records = []
     for position, paper in enumerate(results):
         records.append(_normalize_semanticscholar(paper, position))

@@ -2,10 +2,17 @@
 
 ## Calling the package
 
-Run from the `scripts/` directory:
+From the repository root, run:
 
 ```bash
-uv run python -c "import scholar; print(scholar.search('quantum chemistry', limit=1))"
+uv run python -c "import scanlit; print(scanlit.search('quantum chemistry', limit=1))"
+```
+
+In another project, install the published distribution and run the same import from that project's root:
+
+```bash
+uv add scanlit
+uv run python -c "import scanlit; print(scanlit.search('quantum chemistry', limit=1))"
 ```
 
 Every function returns a dict. Discovery, analysis, reading, and Zotero functions are batch-first: pass one query, paper id, or author for one result, or pass a list to fan out concurrently and receive results in input order under `results`. Zotero functions are also batch-first; writes use chunks of 50 and PDF uploads run in parallel.
@@ -57,5 +64,6 @@ Credentials come from the environment or a project `.env`:
 - `ZOTERO_API_KEY`, `ZOTERO_LIBRARY_ID`, and `ZOTERO_LIBRARY_TYPE` for Zotero.
 - `CORE_API_KEY` for a higher CORE rate limit.
 - `ANNAS_SECRET_KEY` and `FLARESOLVERR_URL` only for the optional last-resort full-text routes described in the [reading guidance](reading.md) and [source notes](../references/sources.md).
+- `OBSIDIAN_VAULT` to place generated Obsidian notes outside the current project's `vault/` directory.
 
 Never hardcode credentials or print them in output.

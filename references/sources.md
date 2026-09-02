@@ -2,7 +2,7 @@
 
 For source selection, API addresses, and official documentation links, start with the [database and documentation map](../instructions/databases.md). This file keeps the deeper implementation-verified quirks and full-text routing notes.
 
-Almost every query goes through the unified engine — the `scholar` package (in `scripts/scholar/`), imported and called from `uv run python` — which fans out to all sources through their official client libraries (pyalex for OpenAlex, arxiv, habanero for Crossref, biopython/Entrez for PubMed, semanticscholar; Europe PMC over its REST API), normalizes, de-duplicates, and ranks for you (see the package docstring for the full request schema). This file holds the verified knowledge the engine does not handle automatically: each source's strengths and quirks, how to run the deeper analytical queries that go beyond topical search, how to retrieve full text and figures, and how to obtain a Semantic Scholar key. Every endpoint and quirk here was verified live.
+Almost every query goes through the unified installed `scanlit` package, imported and called from `uv run python`, which fans out to all sources through their official client libraries (pyalex for OpenAlex, arxiv, habanero for Crossref, biopython/Entrez for PubMed, semanticscholar; Europe PMC over its REST API), normalizes, de-duplicates, and ranks for you (see the package docstring for the full request schema). This file holds the verified knowledge the engine does not handle automatically: each source's strengths and quirks, how to run the deeper analytical queries that go beyond topical search, how to retrieve full text and figures, and how to obtain a Semantic Scholar key. Every endpoint and quirk here was verified live.
 
 **Search broad by default.** The whole point is to find the best information easily, so a default request applies no `type`, `open_access`, or year filter, and the fan-out spans preprints (arXiv), reviews, conference papers, and journal articles across every source. Narrow only when the user explicitly asks. Whenever any narrowing filter is applied — open-access only, a publication type, a year window, or simply the per-source result cap — the engine logs it via `logger.warning`; call `scholar.configure_logging()` so those lines stream to stderr, read them from the run output, and relay them to the user, who otherwise cannot see what was excluded. One vocabulary note: the unified `type` uses Crossref names (for example `journal-article`); the engine translates these for OpenAlex, which calls that type `article`.
 
@@ -56,7 +56,7 @@ This was verified against Yoshua Bengio (`A5086198262`), returning Aaron Courvil
 
 ## Full-text route options (the `fulltext` tool)
 
-`scholar.fulltext(paper_id)` checks the available routes below and returns every location found under `routes`. With `download=True` it saves the best PDF (to `out_path`, or `out_dir`, or a temp directory) and returns the absolute `pdf_path` plus citation metadata in `paper` — so the driver can attach it to Zotero and have Claude Code read the PDF directly. No text is extracted; reading is done by viewing the PDF. The route order is an implementation detail, not a required task sequence:
+`scanlit.fulltext(paper_id)` checks the available routes below and returns every location found under `routes`. With `download=True` it saves the best PDF (to `out_path`, or `out_dir`, or a temp directory) and returns the absolute `pdf_path` plus citation metadata in `paper` — so the driver can attach it to Zotero and have Claude Code read the PDF directly. No text is extracted; reading is done by viewing the PDF. The route order is an implementation detail, not a required task sequence:
 
 1. **arXiv id** → `https://arxiv.org/pdf/<id>` (verified real PDF).
 1. **PMCID** → `https://www.ebi.ac.uk/europepmc/webservices/rest/<PMCID>/fullTextXML`. The PMCID keeps its `PMC` prefix and takes no extra `PMC/` path segment (that returns 404). The NCBI alternative is `efetch.fcgi?db=pmc&id=<numeric>&rettype=xml`.
@@ -89,7 +89,7 @@ Then set `FLARESOLVERR_URL=http://localhost:8191` in `.env`. The container takes
 
 ## Figures and images from PDFs (the `figures` tool)
 
-`scholar.figures(...)` extracts a PDF's embedded raster figures as JPG images (via PyMuPDF). Give it a `paper_id` (resolved to a PDF through the available routes), a direct `pdf_url`, or a local `pdf_path`, and an optional `out_dir`. It returns the absolute `workdir` and the list of `images`; read the images. Because this pulls only embedded raster images, vector or composed figures can be missed — to read the whole document (figures in context, text, equations), use `fulltext(download=True)` and have Claude Code read the PDF file directly.
+`scanlit.figures(...)` extracts a PDF's embedded raster figures as JPG images (via PyMuPDF). Give it a `paper_id` (resolved to a PDF through the available routes), a direct `pdf_url`, or a local `pdf_path`, and an optional `out_dir`. It returns the absolute `workdir` and the list of `images`; read the images. Because this pulls only embedded raster images, vector or composed figures can be missed — to read the whole document (figures in context, text, equations), use `fulltext(download=True)` and have Claude Code read the PDF file directly.
 
 ## Zotero (the reference manager)
 

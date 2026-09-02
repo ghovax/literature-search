@@ -3,12 +3,12 @@ name: literature-search
 title: Find, analyze, read scholarly papers and save them to Zotero
 enabled: true
 description: >-
-  General-purpose scholarly-literature engine: the importable `scholar` Python package, whose functions you call from `uv run python`. Use it to find papers, analyze citations and authors, obtain open-access full text, inspect figures, and manage the Zotero library. The package composes live results from OpenAlex, Semantic Scholar, Crossref, arXiv, PubMed, and Europe PMC.
+  General-purpose scholarly-literature engine: the importable `scanlit` Python package, whose functions you call from `uv run python`. Use it to find papers, analyze citations and authors, obtain open-access full text, inspect figures, and manage the Zotero library. The package composes live results from OpenAlex, Semantic Scholar, Crossref, arXiv, PubMed, and Europe PMC.
 ---
 
 # Literature Search
 
-This is the overview and first instruction file for the skill. The engine is the importable `scholar` package in `scripts/scholar/`. Run it with `uv run python` from `scripts/`; the project is installed editable, so imports and local edits are live.
+This is the overview and first instruction file for the skill. The engine is the installable `scanlit` package declared by the repository's `pyproject.toml`. Run it with `uv run python` from the repository root, or install the `scanlit` distribution into any project and import `scanlit` there.
 
 ## Operating model
 

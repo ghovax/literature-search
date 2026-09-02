@@ -1,20 +1,21 @@
 # Literature Search
 
-This repository pairs the `literature-search` skill with its importable `scholar` Python package.
+This repository pairs the `literature-search` skill with its importable `scanlit` Python package.
 
 | Path | Purpose |
 | --- | --- |
 | [Skill overview](SKILL.md) | Entry point and progressive-disclosure guide |
 | [Instruction set](instructions/) | Task-specific operating instructions, loaded only as needed |
-| [Scholar package](scripts/scholar/) | Multi-source discovery, analysis, full-text, and Zotero package |
+| [Scanlit source package](scripts/scanlit/) | Multi-source discovery, analysis, full-text, and Zotero package |
 | [References](references/) | Deeper source notes and composition diagrams |
-| [Package configuration](scripts/pyproject.toml) | Dependencies and build configuration |
+| [Package configuration](pyproject.toml) | Dependencies, build configuration, and PyPI metadata |
 
-Run the package from `scripts/`:
+Run it from this repository's root:
 
 ```bash
-cd scripts
-uv run python -c "import scholar; print(scholar.search('quantum chemistry', limit=1))"
+uv run python -c "import scanlit; print(scanlit.search('quantum chemistry', limit=1))"
 ```
 
-The skill is self-contained: install or copy this repository as the `literature-search` skill, and use the package from its `scripts/` project.
+Install the published distribution into another project with `uv`. The package is distributed as `scanlit` and imported as `scanlit`.
+
+The skill is self-contained: install or copy this repository as the `literature-search` skill, while the Python package can be installed independently.

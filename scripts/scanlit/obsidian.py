@@ -1,4 +1,5 @@
 """Obsidian vault integration: create and read paper notes backed by Zotero."""
+import os
 import pathlib
 
 import frontmatter
@@ -22,9 +23,9 @@ class _SpacedMarkdownRenderer(MarkdownRenderer):
             )
 
 
-# Vault is at the repo root, five levels above this file:
-# obsidian.py → scholar/ → scripts/ → literature-search/ → skills/ → .claude/ → repo root
-_DEFAULT_VAULT = pathlib.Path(__file__).parents[5] / "vault"
+# Use an explicit vault when supplied; otherwise keep notes in the current
+# project's vault directory. This also works when scanlit is installed from PyPI.
+_DEFAULT_VAULT = pathlib.Path(os.environ.get("OBSIDIAN_VAULT", pathlib.Path.cwd() / "vault")).expanduser()
 
 
 def _make_heading(level: int, text: str) -> Heading:

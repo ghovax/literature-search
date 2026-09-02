@@ -8,9 +8,8 @@ and reading their full text and figures (`fulltext`,
 plain dict and every result record carries an `ids` object, so the output of one
 call feeds the next.
 
-This package is the interface: import it and call its functions from Python run
-with `uv run python` from the project root (the project is installed editable, so
-`import scholar` works with no sys.path juggling and edits are live).
+This package is the interface: install the `scanlit` distribution, import
+`scanlit`, and call its functions with `uv run python` from any project.
 
 Batch by default: every discovery, analysis, and reading function takes its primary argument (a query, a
 paper id, an author) either as a single value  returning one result dict  or
