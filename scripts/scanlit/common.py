@@ -41,19 +41,30 @@ FACET_FIELDS = {
 logger = logging.getLogger("scanlit")
 
 
-def configure_logging(log_path: str = DEFAULT_LOG_PATH) -> None:
-    """Optional: route this library's INFO logs to standard error and a flushed log file.
+def _setup_logging() -> None:
+    """Configure stderr and file logging automatically on the first import."""
+    if logger.handlers:
+        return
 
-    Call once from the importing process to capture a diagnostic run log. If never called, the
-    library stays quiet, because its logger has no handlers.
-    """
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-    file_handler = logging.FileHandler(log_path, mode="w")
-    file_handler.setFormatter(formatter)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+
     stream_handler = logging.StreamHandler(sys.stderr)
     stream_handler.setFormatter(formatter)
-    logger.setLevel(logging.INFO)
-    logger.handlers = [file_handler, stream_handler]
+    logger.addHandler(stream_handler)
+
+    log_path = os.environ.get("SCANLIT_LOG_PATH", DEFAULT_LOG_PATH)
+    try:
+        file_handler = logging.FileHandler(log_path, mode="a")
+    except OSError:
+        logger.warning("Could not open the scanlit log file at %s; stderr logging remains enabled.", log_path)
+    else:
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+
+_setup_logging()
 
 
 def _http_get(url: str, params: dict | None = None, headers: dict | None = None) -> httpx.Response:

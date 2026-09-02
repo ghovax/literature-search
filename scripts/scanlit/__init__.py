@@ -31,7 +31,6 @@ from .analyze import (
     lookup,
     similar,
 )
-from .common import configure_logging
 from .find import search
 from .obsidian import obsidian_create, obsidian_read
 from .read import book_fulltext, figures, fulltext, webpage_snapshot
@@ -56,5 +55,4 @@ __all__ = [
     # Zotero Web API  full CRUD plus PDF upload, every call batched.
     "zotero_save", "zotero_create", "zotero_update", "zotero_delete",
     "zotero_attach", "zotero_items", "zotero_collections", "zotero_get",
-    "configure_logging",
 ]

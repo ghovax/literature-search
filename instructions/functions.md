@@ -17,7 +17,7 @@ uv run python -c "import scanlit; print(scanlit.search('quantum chemistry', limi
 
 Every function returns a dict. Discovery, analysis, reading, and Zotero functions are batch-first: pass one query, paper id, or author for one result, or pass a list to fan out concurrently and receive results in input order under `results`. Zotero functions are also batch-first; writes use chunks of 50 and PDF uploads run in parallel.
 
-Call `scholar.configure_logging()` when warnings matter. Without it, the package remains quiet; with it, narrowing filters, source failures, fallbacks, and incomplete results are visible in stderr and the diagnostic log.
+Logging is automatic on import: informational messages and warnings are sent to stderr and appended to the temporary scanlit log. Set `SCANLIT_LOG_PATH` when a different log location is needed.
 
 ## Function reference
 
@@ -46,7 +46,6 @@ Call `scholar.configure_logging()` when warnings matter. Without it, the package
 | `zotero_get(keys, children=...)` | zotero | Fetch complete item JSON and, optionally, child notes and attachments. |
 | `obsidian_create(zotero_key)` | obsidian | Create an Obsidian note from a Zotero item if it does not exist. |
 | `obsidian_read(zotero_key)` | obsidian | Read the user's Obsidian comments for a Zotero item. |
-| `configure_logging()` | — | Enable diagnostic warnings and the flushed temporary run log. |
 
 ## Interface contract
 

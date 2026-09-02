@@ -10,11 +10,7 @@ This repository pairs the `literature-search` skill with its importable `scanlit
 | [References](references/) | Deeper source notes and composition diagrams |
 | [Package configuration](pyproject.toml) | Dependencies, build configuration, and PyPI metadata |
 
-Run it from this repository's root:
-
-```bash
-uv run python -c "import scanlit; print(scanlit.search('quantum chemistry', limit=1))"
-```
+Run it from this repository's root.
 
 Install the published distribution into another project with `uv`. The package is distributed as `scanlit` and imported as `scanlit`.
 

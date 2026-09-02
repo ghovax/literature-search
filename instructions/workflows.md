@@ -29,7 +29,7 @@ Never hide incomplete work. Surface:
 - Zotero `skipped`, `errors`, `create_failures`, attachment failures, and `has_pdf: false`.
 - A missing abstract, missing topic data, unavailable full text, or a source that was not consulted.
 
-Call `scholar.configure_logging()` at the start of a run, then read stderr and the diagnostic log before reporting the result.
+Logging is automatic. Read stderr and the temporary scanlit log before reporting the result.
 
 ## Verification and comprehension
 
