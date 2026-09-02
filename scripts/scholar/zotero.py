@@ -1,5 +1,4 @@
-"""Zotero Web API integration: full item CRUD, PDF upload, library read/search,
-and the one-call save pipeline."""
+"""Zotero Web API integration: full item CRUD, PDF upload, and library read/search."""
 import hashlib
 import json
 import os
@@ -543,14 +542,14 @@ def _zotero_journal_item(record: dict, crossref: dict | None, tags, collections)
 
 def zotero_save(papers, *, collections=None, tags=None, dedup=True,
                 download=True, scihub_proxy=None, email=None) -> dict:
-    """One-call batched pipeline: take papers → dedup → fetch metadata + PDFs in parallel → create + attach.
+    """One-call batched save: deduplicate papers, enrich metadata, create items, and attach PDFs.
 
     `papers` is a list of paper ids (DOI / arXiv / PMID / OpenAlex id) and/or already-normalized records
-    (dicts carrying an "ids" object, e.g. straight from search()/author_works()). The pipeline:
+    (dicts carrying an "ids" object, e.g. straight from search()/author_works()). The operation:
       1. Resolves any bare ids to records (parallel).
       2. Dedups by DOI against the existing library (skip when `dedup`), so re-running is safe.
       3. Fetches CrossRef bib fields and downloads the best PDF for each new paper (parallel; PDF only
-         when `download`, walking the open-access ladder then Sci-Hub).
+         when `download`, using the configured full-text routes).
       4. Creates the journalArticle items in batches of 50 (full citation: every field populated).
       5. Uploads each downloaded PDF as an attachment in parallel.
     `collections` is a list of existing collection KEYS; `tags` a list of tag strings applied to every item.

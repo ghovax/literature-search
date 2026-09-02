@@ -2,12 +2,13 @@
 
 This repository pairs the `literature-search` skill with its importable `scholar` Python package.
 
-| Path                     | Purpose                                                         |
-| ------------------------ | --------------------------------------------------------------- |
-| `SKILL.md`               | Codex skill instructions and function reference                 |
-| `scripts/scholar/`       | Multi-source discovery, analysis, full-text, and Zotero package |
-| `scripts/pyproject.toml` | Package dependencies and build configuration                    |
-| `references/`            | Source notes and composition diagrams                           |
+| Path | Purpose |
+| --- | --- |
+| [Skill overview](SKILL.md) | Entry point and progressive-disclosure guide |
+| [Instruction set](instructions/) | Task-specific operating instructions, loaded only as needed |
+| [Scholar package](scripts/scholar/) | Multi-source discovery, analysis, full-text, and Zotero package |
+| [References](references/) | Deeper source notes and composition diagrams |
+| [Package configuration](scripts/pyproject.toml) | Dependencies and build configuration |
 
 Run the package from `scripts/`:
 

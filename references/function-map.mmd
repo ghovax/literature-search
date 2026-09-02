@@ -1,0 +1,29 @@
+%% Flexible composition map. No task is required to follow every connection.
+%% Records carry ids (DOI / arXiv / PMID / PMCID / OpenAlex), which can seed
+%% whichever other function is useful for the question.
+%% Render with any Mermaid viewer.
+flowchart LR
+    task["user task"] --> choose["choose relevant functions and sources"]
+
+    choose --> search["search (query)"]
+    choose --> authors["find_authors / coauthors / author_works"]
+    choose --> lookup["lookup (id)"]
+    choose --> citations["citations (id)"]
+    choose --> similar["similar (id)"]
+    choose --> facets["facets (query, by)"]
+    choose --> fulltext["fulltext (id)"]
+    choose --> figures["figures (id)"]
+    choose --> zotero["zotero_* / obsidian_*"]
+
+    search -. optional result ids .-> lookup
+    search -. optional result ids .-> citations
+    search -. optional result ids .-> similar
+    search -. optional result ids .-> fulltext
+    authors -. optional work ids .-> citations
+    authors -. optional work ids .-> fulltext
+    citations -. optional related ids .-> fulltext
+    citations -. optional related ids .-> figures
+    similar -. optional result ids .-> fulltext
+    fulltext -. optional PDF .-> figures
+    choose -. optional existing-library context .-> zotero
+    zotero -. optional saved identifiers .-> lookup

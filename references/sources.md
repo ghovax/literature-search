@@ -1,5 +1,7 @@
 # Sources reference
 
+For source selection, API addresses, and official documentation links, start with the [database and documentation map](../instructions/databases.md). This file keeps the deeper implementation-verified quirks and full-text routing notes.
+
 Almost every query goes through the unified engine — the `scholar` package (in `scripts/scholar/`), imported and called from `uv run python` — which fans out to all sources through their official client libraries (pyalex for OpenAlex, arxiv, habanero for Crossref, biopython/Entrez for PubMed, semanticscholar; Europe PMC over its REST API), normalizes, de-duplicates, and ranks for you (see the package docstring for the full request schema). This file holds the verified knowledge the engine does not handle automatically: each source's strengths and quirks, how to run the deeper analytical queries that go beyond topical search, how to retrieve full text and figures, and how to obtain a Semantic Scholar key. Every endpoint and quirk here was verified live.
 
 **Search broad by default.** The whole point is to find the best information easily, so a default request applies no `type`, `open_access`, or year filter, and the fan-out spans preprints (arXiv), reviews, conference papers, and journal articles across every source. Narrow only when the user explicitly asks. Whenever any narrowing filter is applied — open-access only, a publication type, a year window, or simply the per-source result cap — the engine logs it via `logger.warning`; call `scholar.configure_logging()` so those lines stream to stderr, read them from the run output, and relay them to the user, who otherwise cannot see what was excluded. One vocabulary note: the unified `type` uses Crossref names (for example `journal-article`); the engine translates these for OpenAlex, which calls that type `article`.
@@ -52,9 +54,9 @@ def top_coauthors(works: list[dict], exclude_author: str, limit: int = 10) -> li
 
 This was verified against Yoshua Bengio (`A5086198262`), returning Aaron Courville (28 joint papers), Pascal Vincent (21), and Kyunghyun Cho (13).
 
-## Full-text routing ladder (the `fulltext` tool)
+## Full-text route options (the `fulltext` tool)
 
-`scholar.fulltext(paper_id)` does all of this for you: it walks the ladder below and returns every location found under `routes`. With `download=True` it saves the best PDF (to `out_path`, or `out_dir`, or a temp directory) and returns the absolute `pdf_path` plus citation metadata in `paper` — so the driver can attach it to Zotero and have Claude Code read the PDF directly. No text is extracted; reading is done by viewing the PDF. The ladder, in order, is the verified knowledge behind it:
+`scholar.fulltext(paper_id)` checks the available routes below and returns every location found under `routes`. With `download=True` it saves the best PDF (to `out_path`, or `out_dir`, or a temp directory) and returns the absolute `pdf_path` plus citation metadata in `paper` — so the driver can attach it to Zotero and have Claude Code read the PDF directly. No text is extracted; reading is done by viewing the PDF. The route order is an implementation detail, not a required task sequence:
 
 1. **arXiv id** → `https://arxiv.org/pdf/<id>` (verified real PDF).
 1. **PMCID** → `https://www.ebi.ac.uk/europepmc/webservices/rest/<PMCID>/fullTextXML`. The PMCID keeps its `PMC` prefix and takes no extra `PMC/` path segment (that returns 404). The NCBI alternative is `efetch.fcgi?db=pmc&id=<numeric>&rettype=xml`.
@@ -62,19 +64,19 @@ This was verified against Yoshua Bengio (`A5086198262`), returning Aaron Courvil
 1. **Crossref DOI** → Unpaywall at `https://api.unpaywall.org/v2/<DOI>?email=<address>`, read `best_oa_location.url_for_pdf`. Unpaywall knows only Crossref-registered DOIs, so arXiv `10.48550/arXiv.*` DOIs 404 — use route 1 for those. The email is required but any address works.
 1. **bioRxiv / medRxiv DOI** (`10.1101/...`) → `https://api.biorxiv.org/details/<server>/<doi>` returns a `jatsxml` full-text URL.
 1. **CORE** → `https://api.core.ac.uk/v3/search/works/?q=doi:"<doi>"` (trailing slash required) returns `downloadUrl`. A `CORE_API_KEY` env var lifts the rate limit.
-1. **Sci-Hub** → a fetch by DOI when no open-access copy exists. The fetcher tries the mirror list in `SCIHUB_MIRRORS` (23 mirrors, ordered by reachability — `sci-hub.st`/`.ru`/`.box`/`.red`/… first, the DNS-flaky `sci-hub.se`/`.te` last), parses the PDF link from the article page's `citation_pdf_url` meta tag, and downloads it directly (disabling certificate verification, since the mirrors require it, and handling DDoS-Guard). Pass `scihub_proxy` (an httpx proxy URL like `socks5://127.0.0.1:7890`) to route it through a proxy. `fulltext` reports `source: "scihub"`. **Sci-Hub froze new uploads around 2021**, so post-2021 papers usually are not here — that is what the Anna's Archive rungs cover.
+1. **Sci-Hub** → a DOI fallback when no open-access copy exists. The fetcher tries the mirror list in `SCIHUB_MIRRORS` (23 mirrors, ordered by reachability — `sci-hub.st`/`.ru`/`.box`/`.red`/… first, the DNS-flaky `sci-hub.se`/`.te` last), parses the PDF link from the article page's `citation_pdf_url` meta tag, and downloads it directly (disabling certificate verification, since the mirrors require it, and handling DDoS-Guard). Pass `scihub_proxy` (an httpx proxy URL like `socks5://127.0.0.1:7890`) to route it through a proxy. `fulltext` reports `source: "scihub"`. **Sci-Hub froze new uploads around 2021**, so post-2021 papers usually are not here — the Anna's Archive fallbacks may cover some newer papers.
 1. **Anna's Archive — member API** → for papers newer than the Sci-Hub freeze. Resolves the DOI to its canonical SciDB md5 via `/scidb/<doi>` (the record page carries exactly one md5; a redirect to `/search?…` means "no record" → skip), then calls `/dyn/api/fast_download.json?md5=&key=` for a `download_url`. Uses the challenge-free official mirrors `annas-archive.gl`/`.pk`/`.gd` (the `.li`/`.org`/`.se` frontends are JS-walled). **Dormant unless `ANNAS_SECRET_KEY` is set**, and that key needs an **active paid membership** to authorize. `source: "annas_archive"`.
-1. **Anna's Archive — keyless slow tier** → the no-membership path (`/slow_download/<md5>/0/<n>`). It sits behind a DDoS-Guard browser challenge that a plain HTTP client cannot pass, so it delivers only when that wall is down or when `FLARESOLVERR_URL` (a running FlareSolverr instance) is set to solve the challenge. **Expect it to be slow — on the order of minutes per paper** (verified end-to-end at ~4 min for one PDF): Anna's deliberately throttles the keyless partner servers, and each challenge solve drives a real browser (~10-15s). Treat it as a reliable last-resort backstop, not a fast path — rung 8 (the member API) is the quick route when a key is available. `source: "annas_archive_slow"`.
+1. **Anna's Archive — keyless slow tier** → the no-membership path (`/slow_download/<md5>/0/<n>`). It sits behind a DDoS-Guard browser challenge that a plain HTTP client cannot pass, so it delivers only when that wall is down or when `FLARESOLVERR_URL` (a running FlareSolverr instance) is set to solve the challenge. **Expect it to be slow — on the order of minutes per paper** (verified end-to-end at ~4 min for one PDF): Anna's deliberately throttles the keyless partner servers, and each challenge solve drives a real browser (~10-15s). Treat it as a reliable last-resort backstop, not a fast path; the member API is quicker when a key is available. `source: "annas_archive_slow"`.
 1. **Fallback** → when nothing resolves, reason over the abstract and say full text was unavailable. Never fabricate contents you could not retrieve.
 
-## Enabling the Anna's Archive rungs (env vars + FlareSolverr)
+## Enabling the Anna's Archive fallbacks (env vars + FlareSolverr)
 
-Rungs 8 and 9 are off until configured. Both are read from the environment or the project `.env`.
+The two Anna's Archive routes are off until configured. Both are read from the environment or the project `.env`.
 
-- **`ANNAS_SECRET_KEY`** (rung 8, fast member API) — the secret key from your Anna's Archive Account page. It only authorizes with an **active paid membership**; with `Membership: None` the API returns an error and the rung yields nothing. The key is domain-independent, so it keeps working as the official domains rotate.
-- **`FLARESOLVERR_URL`** (rung 9, keyless slow tier) — the base URL of a running FlareSolverr instance (e.g. `http://localhost:8191`). FlareSolverr is a small proxy that drives a headless browser to solve the DDoS-Guard challenge guarding the slow-download endpoints; without it that rung can only succeed on a network where the wall happens to be down.
+- **`ANNAS_SECRET_KEY`** (fast member API) — the secret key from your Anna's Archive Account page. It only authorizes with an **active paid membership**; with `Membership: None` the API returns an error and the route yields nothing. The key is domain-independent, so it keeps working as the official domains rotate.
+- **`FLARESOLVERR_URL`** (keyless slow tier) — the base URL of a running FlareSolverr instance (e.g. `http://localhost:8191`). FlareSolverr is a small proxy that drives a headless browser to solve the DDoS-Guard challenge guarding the slow-download endpoints; without it the route can only succeed on a network where the wall happens to be down.
 
-Check ALWAYS first if it's running, and if not, bring FlareSolverr up with Docker, then point `.env` at it:
+Before using the slow route, check whether FlareSolverr is already running; if not, it can be started with Docker and referenced from `.env`:
 
 ```bash
 docker run -d --name flaresolverr --restart unless-stopped -p 8191:8191 \
@@ -87,7 +89,7 @@ Then set `FLARESOLVERR_URL=http://localhost:8191` in `.env`. The container takes
 
 ## Figures and images from PDFs (the `figures` tool)
 
-`scholar.figures(...)` extracts a PDF's embedded raster figures as JPG images (via PyMuPDF). Give it a `paper_id` (resolved to a PDF through the ladder above), a direct `pdf_url`, or a local `pdf_path`, and an optional `out_dir`. It returns the absolute `workdir` and the list of `images`; read the images. Because this pulls only embedded raster images, vector or composed figures can be missed — to read the whole document (figures in context, text, equations), use `fulltext(download=True)` and have Claude Code read the PDF file directly.
+`scholar.figures(...)` extracts a PDF's embedded raster figures as JPG images (via PyMuPDF). Give it a `paper_id` (resolved to a PDF through the available routes), a direct `pdf_url`, or a local `pdf_path`, and an optional `out_dir`. It returns the absolute `workdir` and the list of `images`; read the images. Because this pulls only embedded raster images, vector or composed figures can be missed — to read the whole document (figures in context, text, equations), use `fulltext(download=True)` and have Claude Code read the PDF file directly.
 
 ## Zotero (the reference manager)
 

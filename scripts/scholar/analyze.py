@@ -1,4 +1,4 @@
-"""Layer 2 analysis: id resolution, citation graph, similar work, facets, and
+"""Analysis helpers: id resolution, citation graph, similar work, facets, and
 author disambiguation / co-authors / works, plus the Semantic Scholar helpers."""
 import os
 import time
@@ -191,7 +191,7 @@ def _recommend_via_s2(paper_id: str, limit: int) -> dict:
 
 @batchable("paper_id")
 def lookup(paper_id, *, email=None) -> dict:
-    """Layer 2 — fetch and normalize one paper by id (DOI, arXiv id, PMID, PMCID, or OpenAlex id)."""
+    """Fetch and normalize one paper by id (DOI, arXiv id, PMID, PMCID, or OpenAlex id)."""
     _author_email(email)
     _, record = _resolve_work(paper_id)
     return {"meta": {"operation": "lookup"}, "result": record}
@@ -199,7 +199,7 @@ def lookup(paper_id, *, email=None) -> dict:
 
 @batchable("paper_id")
 def citations(paper_id, *, direction="citing", limit=25, source="openalex", email=None) -> dict:
-    """Layer 2 — citation graph for a paper: 'citing' works (forward) or its 'references' (backward).
+    """Citation graph for a paper: 'citing' works (forward) or its 'references' (backward).
 
     source="openalex" (default) gives broad coverage. source="semanticscholar" additionally returns,
     per citing work, an is_influential flag and the citation contexts (the sentences citing the paper).
@@ -241,7 +241,7 @@ def citations(paper_id, *, direction="citing", limit=25, source="openalex", emai
 
 @batchable("paper_id")
 def similar(paper_id, *, limit=10, source="openalex", email=None) -> dict:
-    """Layer 2 — papers similar to a given one.
+    """Papers similar to a given one.
 
     source="openalex" (default) returns OpenAlex's related works; source="semanticscholar" returns the
     Semantic Scholar recommender's suggestions. Either way, verify topical fit before relying on them.
@@ -275,7 +275,7 @@ def similar(paper_id, *, limit=10, source="openalex", email=None) -> dict:
 
 @batchable("query")
 def facets(query, *, by="year", from_year=None, to_year=None, limit=15, email=None) -> dict:
-    """Layer 2 — aggregate a topic into counts grouped by a dimension (a histogram or top-N).
+    """Aggregate a topic into counts grouped by a dimension (a histogram or top-N).
 
     "by" is one of: year, institution, venue, type, open_access, topic, country. Faceting is an
     OpenAlex capability, so the counts reflect OpenAlex's index only.
@@ -298,7 +298,7 @@ def facets(query, *, by="year", from_year=None, to_year=None, limit=15, email=No
 
 @batchable("name")
 def find_authors(name, *, limit=10, email=None) -> dict:
-    """Layer 2 — disambiguate an author name into candidate OpenAlex authors with affiliation and metrics.
+    """Disambiguate an author name into candidate OpenAlex authors with affiliation and metrics.
 
     Use this before coauthors/author_works when a name is ambiguous: each candidate carries its
     OpenAlex id, last-known institution, works count, h-index, and citation count.
@@ -312,7 +312,7 @@ def find_authors(name, *, limit=10, email=None) -> dict:
 
 @batchable("author")
 def coauthors(author, *, limit=20, email=None) -> dict:
-    """Layer 2 — an author's most frequent collaborators, each enriched with prominence metrics.
+    """An author's most frequent collaborators, each enriched with prominence metrics.
 
     Collaborators are tallied by OpenAlex author id (names are not unique) and ordered by joint-paper
     count; each entry also carries h_index and cited_by_count so they can be re-ranked by prominence.
@@ -363,7 +363,7 @@ def coauthors(author, *, limit=20, email=None) -> dict:
 @batchable("author")
 def author_works(author, *, coauthor=None, from_year=None, to_year=None, sort=None,
                  limit=20, maximum_results=None, email=None) -> dict:
-    """Layer 2 — an author's own works as ranked records, honoring the year window and sort.
+    """An author's own works as ranked records, honoring the year window and sort.
 
     Answers "an author's most cited papers" or "their most recent work". With coauthor set (a name
     or OpenAlex id) it returns only the works the two share — their joint body of work. With
@@ -423,7 +423,7 @@ def author_works(author, *, coauthor=None, from_year=None, to_year=None, sort=No
 
 @batchable("author")
 def author_profile(author, *, email=None) -> dict:
-    """Layer 2 — fetch the complete OpenAlex author record: full profile with topics,
+    """Fetch the complete OpenAlex author record: full profile with topics,
     concepts, summary_stats, and affiliation history (with years).
 
     Unlike find_authors/coauthors (which return compact summaries), this returns the
@@ -471,5 +471,4 @@ def author_profile(author, *, email=None) -> dict:
         ],
     }
     return {"meta": {"operation": "author_profile"}, "result": result}
-
 

@@ -1,5 +1,4 @@
-"""Layer 1 discovery: fan out a query across every source in parallel, then merge
-and rank the results."""
+"""Discovery: fan out a query across every source in parallel, then merge and rank the results."""
 import concurrent.futures
 import os
 
@@ -14,7 +13,7 @@ from .sources import SOURCE_ADAPTERS
 @batchable("query")
 def search(query, *, sources=None, limit=20, from_year=None, to_year=None,
            open_access=None, work_type=None, sort=None, email=None, s2_api_key=None) -> dict:
-    """Layer 1 — topical discovery across all sources in parallel, de-duplicated and ranked.
+    """Topical discovery across all sources in parallel, de-duplicated and ranked.
 
     Search broad by default: leave work_type, open_access, and the year window unset unless the
     user asks to narrow, so preprints, reviews, and articles are all in scope. Returns

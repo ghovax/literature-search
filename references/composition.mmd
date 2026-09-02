@@ -1,0 +1,18 @@
+%% Flexible composition example. Every node is optional, and relationships
+%% are illustrative rather than a required route for any task.
+%% Render with any Mermaid viewer.
+flowchart LR
+    task["user task"] --> choose["select only relevant functions and sources"]
+
+    choose -. existing-library context .-> library["zotero_items / zotero_collections"]
+    choose -. new literature .-> discover["search"]
+    choose -. author or citation context .-> analyze["lookup / citations / similar / facets / author functions"]
+    choose -. full text or figures .-> read["fulltext / figures / webpage_snapshot"]
+    choose -. durable copy .-> keep["zotero_save / zotero_* / obsidian_*"]
+
+    library -. identifiers or notes .-> discover
+    discover -. paper ids .-> analyze
+    discover -. paper ids .-> read
+    analyze -. paper ids .-> read
+    read -. files and metadata .-> keep
+    keep -. saved identifiers .-> analyze

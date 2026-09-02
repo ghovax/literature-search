@@ -1,5 +1,4 @@
-"""Layer 3 reading: the open-access full-text ladder (arXiv/PMC/Unpaywall/CORE,
-then Sci-Hub, then Anna's Archive) and PDF figure extraction."""
+"""Reading helpers: open-access full-text routes and PDF figure extraction."""
 import functools
 import os
 import pathlib
@@ -25,7 +24,7 @@ from .common import (
 
 
 def _resolve_fulltext_routes(record: dict, email: str) -> list[dict]:
-    """Collect every legal open-access full-text location for a record, walking the source ladder."""
+    """Collect every legal open-access full-text location available for a record."""
     identifiers = record["ids"]
     routes: list[dict] = []
     if identifiers.get("arxiv"):
@@ -143,7 +142,7 @@ def _scihub_pdf_url(html: str) -> str | None:
 
 
 def _scihub_pdf(doi: str, scihub_proxy: str | None) -> bytes:
-    """Fetch a paper PDF by DOI from a Sci-Hub mirror (the last rung of the full-text ladder).
+    """Fetch a paper PDF by DOI from a Sci-Hub mirror as a fallback route.
 
     Sci-Hub sits behind DDoS-Guard and serves the PDF link in the page (a citation_pdf_url meta tag or
     an embed element), on mirrors that sometimes present invalid certificates. This parses the article
@@ -372,8 +371,7 @@ def _acquire_book(isbn: str, scihub_proxy: str | None = None) -> tuple[bytes | N
 
 
 def _acquire_pdf(record: dict, routes: list[dict], scihub_proxy: str | None = None) -> tuple[bytes | None, str | None]:
-    """Return (pdf_bytes, source) walking the ladder: open-access, Sci-Hub, then Anna's Archive
-    (member API if a key is set, then the keyless slow-download tier)."""
+    """Return PDF bytes and the route that supplied them, trying configured routes in turn."""
     pdf_url = next((route.get("pdf_url") for route in routes if route.get("pdf_url")), None)
     if pdf_url:
         try:
@@ -526,9 +524,9 @@ def _resolve_pdf_bytes(paper_id, pdf_url, pdf_path, email, scihub_proxy) -> tupl
 
 @batchable("paper_id")
 def fulltext(paper_id, *, download=False, out_path=None, out_dir=None, email=None, scihub_proxy=None) -> dict:
-    """Layer 3 — resolve open-access full-text locations for a paper, and optionally download the PDF.
+    """Resolve open-access full-text locations for a paper, and optionally download the PDF.
 
-    Walks the open-access ladder (arXiv, Europe PMC / PMC, the OpenAlex open-access copy, Unpaywall,
+    Checks available routes (arXiv, Europe PMC / PMC, the OpenAlex open-access copy, Unpaywall,
     bioRxiv/medRxiv, and CORE) and returns every location under "routes"; when none exist the PDF is
     fetched from Sci-Hub as a last resort. With download=True it saves the best PDF and returns its
     "pdf_path" (and the "source" it came from), so the caller can attach it to Zotero and have Claude
@@ -572,9 +570,9 @@ def fulltext(paper_id, *, download=False, out_path=None, out_dir=None, email=Non
 
 
 def _figures_single(*, paper_id=None, pdf_url=None, pdf_path=None, out_dir=None, email=None, scihub_proxy=None) -> dict:
-    """Layer 3 — extract the embedded figure images from a paper's PDF as JPG files.
+    """Extract the embedded figure images from a paper's PDF as JPG files.
 
-    Provide one source: a paper "paper_id" (resolved to a PDF through the full-text ladder), a direct
+    Provide one source: a paper "paper_id" (resolved to a PDF through the available full-text routes), a direct
     "pdf_url", or a local "pdf_path". Images go to out_dir, or a temp directory when it is omitted; the
     path is returned as "workdir". This pulls the PDF's embedded
     raster images, so vector or composed figures can be missed — to read the whole document (figures in
