@@ -24,7 +24,7 @@ Use `fulltext(paper_id, download=True)` when a paper needs to be read or saved. 
 
 Never hide incomplete work. Surface:
 
-- Logged warnings for narrowing filters, per-source caps, source failures, and fallbacks.
+- Logged warnings for narrowing filters, per-source caps, source failures, and fallbacks. Inspect structured `meta.sources[name].status`, `.count`, and `.error` for each searched source; a partial failure need not invalidate successful sources.
 - Batch `_error` entries and `meta.failed` counts.
 - Zotero `skipped`, `errors`, `create_failures`, attachment failures, and `has_pdf: false`.
 - A missing abstract, missing topic data, unavailable full text, or a source that was not consulted.

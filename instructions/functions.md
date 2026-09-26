@@ -2,57 +2,55 @@
 
 ## Calling the package
 
-From the repository root, run:
+Import and call `scanlit` directly from the active Python environment:
 
-```bash
-uv run python -c "import scanlit; print(scanlit.search('quantum chemistry', limit=1))"
+```python
+from scanlit import search
+result = search("quantum chemistry", limit=1)
+print(result)
 ```
 
-In another project, install the published distribution and run the same import from that project's root:
+When working from this repository, install the project into the active environment once if needed (for example, `uv pip install -e .`), then use normal imports. Do not generate a script string, call `python -c`, or launch a subprocess for routine `scanlit` operations.
 
-```bash
-uv add scanlit
-uv run python -c "import scanlit; print(scanlit.search('quantum chemistry', limit=1))"
-```
-
-Every function returns a dict. Discovery, analysis, reading, and Zotero functions are batch-first: pass one query, paper id, or author for one result, or pass a list to fan out concurrently and receive results in input order under `results`. Zotero functions are also batch-first; writes use chunks of 50 and PDF uploads run in parallel.
-
-Logging is automatic on import: informational messages and warnings are sent to stderr and appended to the temporary scanlit log. Set `SCANLIT_LOG_PATH` when a different log location is needed.
+Keep execution visible. Show inputs before a multi-paper job and display each returned result immediately. For long downloads or Zotero writes, prefer one item or a small batch per call so progress, warnings, missing PDFs, and failures are visible while the job proceeds rather than only after the entire batch finishes.
 
 ## Function reference
 
-| Function | Role | Purpose |
-| --- | --- | --- |
-| `search(query, ...)` | find | Search all selected sources, de-duplicate, and rank topical results. |
-| `lookup(paper_id)` | analyze | Fetch one paper by DOI, arXiv id, PMID, PMCID, or OpenAlex id. |
-| `citations(paper_id, direction=..., source=...)` | analyze | Traverse citing papers or references; Semantic Scholar adds influential flags and citation contexts. |
-| `similar(paper_id, source=...)` | analyze | Fetch OpenAlex related works or Semantic Scholar recommendations. |
-| `facets(query, by=...)` | analyze | Count works by year, institution, venue, type, open-access status, topic, or country. |
-| `find_authors(name)` | analyze | Return candidate OpenAlex authors for disambiguation. |
-| `coauthors(author)` | analyze | Return an author's most frequent collaborators with metrics. |
-| `author_works(author, coauthor=..., maximum_results=...)` | analyze | Return an author's works, or only the joint works with a coauthor. |
-| `author_profile(author)` | analyze | Return topics, concepts, metrics, name variants, and affiliation history. |
-| `fulltext(paper_id, download=...)` | read | Find full-text routes and optionally save the best PDF. |
-| `figures(paper_id=...)` | read | Extract embedded raster figures from a PDF. |
-| `book_fulltext(isbn, download=...)` | read | Acquire a book PDF by ISBN when the configured book route is available. |
-| `webpage_snapshot(url, out_path=...)` | read | Save a webpage as a full-page PDF or HTML fallback. |
-| `zotero_save(papers, ...)` | zotero | Deduplicate, enrich, create Zotero items, and attach PDFs. |
-| `zotero_create(items)` | zotero | Create editable Zotero item JSON in batches. |
-| `zotero_update(updates)` | zotero | PATCH existing Zotero items; only supplied fields change. |
-| `zotero_delete(keys)` | zotero | Delete Zotero items by key. |
-| `zotero_attach(attachments)` | zotero | Upload PDFs as child attachments. |
-| `zotero_items(query=..., tag=..., collection=..., subcollections=..., limit=..., full=...)` | zotero | Read the library or quicksearch it, optionally within a collection. |
-| `zotero_collections(query=...)` | zotero | Find collections and their keys and paths. |
-| `zotero_get(keys, children=...)` | zotero | Fetch complete item JSON and, optionally, child notes and attachments. |
-| `obsidian_create(zotero_key)` | obsidian | Create an Obsidian note from a Zotero item if it does not exist. |
-| `obsidian_read(zotero_key)` | obsidian | Read the user's Obsidian comments for a Zotero item. |
+| Function                                                                                    | Role     | Purpose                                                                                              |
+| ------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `search(query, ...)`                                                                        | find     | Search all selected sources, de-duplicate, and rank topical results.                                 |
+| `lookup(paper_id)`                                                                          | analyze  | Fetch one paper by DOI, arXiv id, PMID, PMCID, or OpenAlex id.                                       |
+| `citations(paper_id, direction=..., source=...)`                                            | analyze  | Traverse citing papers or references; Semantic Scholar adds influential flags and citation contexts. |
+| `similar(paper_id, source=...)`                                                             | analyze  | Fetch OpenAlex related works or Semantic Scholar recommendations.                                    |
+| `facets(query, by=...)`                                                                     | analyze  | Count works by year, institution, venue, type, open-access status, topic, or country.                |
+| `find_authors(name)`                                                                        | analyze  | Return candidate OpenAlex authors for disambiguation.                                                |
+| `coauthors(author)`                                                                         | analyze  | Return an author's most frequent collaborators with metrics.                                         |
+| `author_works(author, coauthor=..., maximum_results=...)`                                   | analyze  | Return an author's works, or only the joint works with a coauthor.                                   |
+| `author_profile(author)`                                                                    | analyze  | Return topics, concepts, metrics, name variants, and affiliation history.                            |
+| `fulltext(paper_id, download=..., source="auto")`                                           | read     | Find full-text routes and optionally save the best PDF.                                              |
+| `pdf_check(pdf_path)`                                                                       | read     | Check a local file’s PDF signature, parseability, and page count before upload.                      |
+| `figures(paper_id=...)`                                                                     | read     | Extract embedded raster figures from a PDF.                                                          |
+| `book_fulltext(isbn, download=...)`                                                         | read     | Acquire a book PDF by ISBN when the configured book route is available.                              |
+| `webpage_snapshot(url, out_path=...)`                                                       | read     | Save a webpage as a full-page PDF or HTML fallback.                                                  |
+| `zotero_save(papers, pdf_source="auto", ...)`                                               | zotero   | Deduplicate, enrich, create Zotero items, and attach PDFs.                                           |
+| `zotero_create(items)`                                                                      | zotero   | Create editable Zotero item JSON in batches.                                                         |
+| `zotero_update(updates)`                                                                    | zotero   | PATCH existing Zotero items; only supplied fields change.                                            |
+| `zotero_delete(keys)`                                                                       | zotero   | Delete Zotero items by key.                                                                          |
+| `zotero_attach(attachments)`                                                                | zotero   | Preflight-validate and upload PDFs as child attachments.                                             |
+| `zotero_items(query=..., tag=..., collection=..., subcollections=..., limit=..., full=...)` | zotero   | Read the library or quicksearch it, optionally within a collection.                                  |
+| `zotero_collections(query=...)`                                                             | zotero   | Find collections and their keys and paths.                                                           |
+| `zotero_get(keys, children=...)`                                                            | zotero   | Fetch complete item JSON and, optionally, child notes and attachments.                               |
+| `obsidian_create(zotero_key)`                                                               | obsidian | Exclusively create a DOI-path or ISBN-named note from a `.md` template; never change existing files. |
+| `obsidian_read(zotero_key)`                                                                 | obsidian | Read the DOI/ISBN-path Obsidian note using a Zotero key.                                             |
 
 ## Interface contract
 
 - Scalar input returns one operation result; list input returns a batch result in input order.
+- `search(...)["meta"]["sources"]` maps each source to `{"status": "ok" | "failed", "count": int, "error": str | None}`. Counts are integers, never embedded in status strings; failures have `count: 0` and a diagnostic `error`. The top-level `count` is the deduplicated result count, not a source count.
 - Every result has `meta`. List-producing calls use `results`; scalar lookups use `result`.
 - Batched calls report `meta.ok` and `meta.failed`; a failed input appears in place as `{"_error": "...", "input": ...}`.
-- Zotero writes report per-item success or failure directly. `zotero_save` additionally reports `created`, `skipped`, `attachments`, `create_failures`, `errors`, and `library_version`.
+- Zotero writes report per-item success or failure directly. `zotero_save` reports `created`, `skipped`, `attachments`, `create_failures`, `errors`, `pdf_errors`, and `library_version`. `meta.pdf_failures` includes missing/invalid PDFs. `created[].has_pdf` is true only after a successful upload.
+- PDF source selectors for `fulltext(source=...)` and `zotero_save(pdf_source=...)`: `auto`, `scihub`, `open_access`, `annas_archive`, `annas_archive_slow`. A named source never silently falls back to a different one.
 - Each scholarly record carries an `ids` object (`doi`, `arxiv`, `pmid`, `pmcid`, `openalex`, and sometimes `s2`). Pass those ids directly into subsequent calls.
 
 ## Credentials

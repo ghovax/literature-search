@@ -93,7 +93,7 @@ def order_results(papers: list[dict], options: dict) -> list[dict]:
     return [paper for paper, _ in sorted(zip(papers, scores), key=lambda pair: pair[1], reverse=True)]
 
 
-def warn_search_filters(options: dict, queried_sources: list[str], source_meta: dict[str, str]) -> None:
+def warn_search_filters(options: dict, queried_sources: list[str], source_meta: dict[str, dict]) -> None:
     """Log every narrowing decision that could have excluded papers, so the caller can relay it."""
     if options.get("open_access"):
         logger.warning(
@@ -117,6 +117,6 @@ def warn_search_filters(options: dict, queried_sources: list[str], source_meta: 
     not_consulted = [source for source in DEFAULT_SOURCES if source not in queried_sources]
     if not_consulted:
         logger.warning("Databases NOT consulted in this run: %s.", ", ".join(not_consulted))
-    failed = [name for name, status in source_meta.items() if not status.startswith("ok")]
+    failed = [name for name, status in source_meta.items() if status.get("status") != "ok"]
     if failed:
-        logger.warning("Returned no results because the query failed or was rate-limited: %s.", ", ".join(failed))
+        logger.warning("Search source failures or timeouts (coverage incomplete): %s.", ", ".join(failed))

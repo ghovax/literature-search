@@ -3,14 +3,18 @@ name: literature-search
 title: Find, analyze, read scholarly papers and save them to Zotero
 enabled: true
 description: >-
-  General-purpose scholarly-literature engine: the importable `scanlit` Python package, whose functions you call from `uv run python`. Use it to find papers, analyze citations and authors, obtain open-access full text, inspect figures, and manage the Zotero library. The package composes live results from OpenAlex, Semantic Scholar, Crossref, arXiv, PubMed, and Europe PMC.
+    General-purpose scholarly-literature engine: the importable `scanlit` Python package, whose functions you import and call directly. Use it to find papers, analyze citations and authors, obtain open-access full text, inspect figures, and manage the Zotero library. The package composes live results from OpenAlex, Semantic Scholar, Crossref, arXiv, PubMed, and Europe PMC.
 ---
 
 # Literature Search
 
-This is the overview and first instruction file for the skill. The engine is the installable `scanlit` package declared by the repository's `pyproject.toml`. Run it with `uv run python` from the repository root, or install the `scanlit` distribution into any project and import `scanlit` there.
+This is the overview and first instruction file for the skill. The engine is the installable `scanlit` package declared by the repository's `pyproject.toml`. Install it into your active Python environment (if needed), then import and call `scanlit` directly.
 
 ## Operating model
+
+Use `scanlit` as a Python library in the active Python execution environment: import the needed functions and call them directly. Do not construct Python source in a string, invoke `python -c`, or wrap ordinary library calls in `subprocess`. If the package is not available in the active environment, install this local project once and then import it normally.
+
+Make work observable. Before a multi-paper operation, display the identifiers that will be processed. Display the returned result after every call; for long operations, use one paper or a small batch at a time and show each result before continuing. Do not hide an entire literature or Zotero workflow in a subprocess and reveal only its final stdout.
 
 Every call reaches the configured upstream source live. The package does not maintain a materialized scholarly graph or metadata cache between calls. Records carry identifiers, so the result of one call can seed another call.
 
@@ -25,8 +29,9 @@ There is no required sequence, starting point, or set of functions for a task. S
 - consult Zotero early when the task concerns the user's library, existing papers, or durable saves;
 - discover papers when new literature is needed;
 - analyze authors, citations, related work, or facets when those relationships matter;
-- obtain full text or figures when the evidence needs to be read in context;
-- save complete metadata and attachments when the user wants to keep a paper.
+- obtain full text or figures when the evidence needs to be read in context; choose an explicit PDF source when tracing a failed route and validate local files with `pdf_check` (acquisition and validation live together in `scripts/scanlit/pdf.py`);
+- save complete metadata and validated attachments when the user wants to keep a paper; check `pdf_errors` and `has_pdf`, not merely the existence of an attachment record.
+- for Obsidian notes, DOI slashes are real directories under the vault root; books without a DOI use `vault/Books/<ISBN>.md`. Keep the Zotero key in front matter, not the filename. `obsidian_create` reads `scripts/scanlit/templates/paper.md` and must never modify an existing note, even an empty one.
 
 These are independent options, not gates. A task can use one function, several functions in any order, or none of the listed activities.
 

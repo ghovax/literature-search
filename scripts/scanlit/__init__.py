@@ -34,6 +34,7 @@ from .analyze import (
 from .find import search
 from .obsidian import obsidian_create, obsidian_read
 from .read import book_fulltext, figures, fulltext, webpage_snapshot
+from .pdf import pdf_check
 from .zotero import (
     zotero_attach,
     zotero_collections,
@@ -48,7 +49,7 @@ from .zotero import (
 __all__ = [
     # Discovery, analysis, and reading (each accepts a single id/query OR a list for batching).
     "search", "lookup", "citations", "similar", "facets", "fulltext", "figures",
-    "book_fulltext", "webpage_snapshot",
+    "book_fulltext", "webpage_snapshot", "pdf_check",
     "find_authors", "coauthors", "author_works", "author_profile",
     # Obsidian vault integration.
     "obsidian_create", "obsidian_read",

@@ -31,8 +31,8 @@ def search(query, *, sources=None, limit=20, from_year=None, to_year=None,
     logger.info("search %r across %s (limit=%s)", query, selected, limit)
 
     collected: list[dict] = []
-    source_meta: dict[str, str] = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(selected)) as pool:
+    source_meta: dict[str, dict] = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(selected))) as pool:
         futures = {pool.submit(SOURCE_ADAPTERS[name], options): name for name in selected}
         done, not_done = concurrent.futures.wait(futures, timeout=PER_RUN_TIMEOUT)
         for future in done:
@@ -40,14 +40,16 @@ def search(query, *, sources=None, limit=20, from_year=None, to_year=None,
             try:
                 records = future.result()
                 collected.extend(records)
-                source_meta[name] = f"ok ({len(records)} records)"
+                source_meta[name] = {"status": "ok", "count": len(records), "error": None}
                 logger.info("%s returned %d records", name, len(records))
             except Exception as error:  # noqa: BLE001
-                source_meta[name] = f"failed: {type(error).__name__}: {error}"
+                source_meta[name] = {"status": "failed", "count": 0,
+                                     "error": f"{type(error).__name__}: {error}"}
                 logger.warning("%s failed: %s: %s", name, type(error).__name__, error)
         for future in not_done:
             name = futures[future]
-            source_meta[name] = f"failed: timed out after {PER_RUN_TIMEOUT:.0f}s"
+            source_meta[name] = {"status": "failed", "count": 0,
+                                 "error": f"timed out after {PER_RUN_TIMEOUT:.0f}s"}
             logger.warning("%s timed out after %.0fs", name, PER_RUN_TIMEOUT)
 
     merged = merge_records(collected)

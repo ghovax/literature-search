@@ -20,7 +20,8 @@ from .common import (
     _parallel_map,
     logger,
 )
-from .read import _acquire_pdf, _resolve_fulltext_routes
+from .pdf import _acquire_pdf, _resolve_fulltext_routes, PDF_SOURCES
+from .pdf import validate_pdf_file
 
 
 ZOTERO_API_BASE = "https://api.zotero.org"
@@ -390,7 +391,7 @@ def _zotero_upload_file(attachment_key: str, pdf_path: str) -> dict:
     """
     _, base = _zotero_config()
     path = pathlib.Path(pdf_path)
-    blob = path.read_bytes()
+    blob = validate_pdf_file(path)
     md5 = hashlib.md5(blob).hexdigest()
     filename, filesize, mtime = path.name, len(blob), int(path.stat().st_mtime * 1000)
 
@@ -431,6 +432,10 @@ def zotero_attach(attachments) -> dict:
     attachments = attachments if isinstance(attachments, list) else [attachments]
     if not attachments:
         return {"meta": {"operation": "zotero_attach", "count": 0, "ok": 0, "failed": 0}, "results": []}
+
+    # Validate every input before creating ANY remote child attachment.
+    for attachment in attachments:
+        validate_pdf_file(attachment["pdf_path"])
 
     templates = []
     for attachment in attachments:
@@ -541,7 +546,7 @@ def _zotero_journal_item(record: dict, crossref: dict | None, tags, collections)
 
 
 def zotero_save(papers, *, collections=None, tags=None, dedup=True,
-                download=True, scihub_proxy=None, email=None) -> dict:
+                download=True, scihub_proxy=None, email=None, pdf_source="auto") -> dict:
     """One-call batched save: deduplicate papers, enrich metadata, create items, and attach PDFs.
 
     `papers` is a list of paper ids (DOI / arXiv / PMID / OpenAlex id) and/or already-normalized records
@@ -553,12 +558,17 @@ def zotero_save(papers, *, collections=None, tags=None, dedup=True,
       4. Creates the journalArticle items in batches of 50 (full citation: every field populated).
       5. Uploads each downloaded PDF as an attachment in parallel.
     `collections` is a list of existing collection KEYS; `tags` a list of tag strings applied to every item.
+    `pdf_source` selects auto (Sci-Hub first) or exactly one of: scihub, open_access,
+    annas_archive, annas_archive_slow. Only validated PDFs are uploaded; report pdf_errors
+    separately from metadata creation, and has_pdf is true only after successful upload.
     Returns a summary with created keys, skipped duplicates, attachment outcomes, and any per-paper errors.
     """
+    if pdf_source != "auto" and pdf_source not in PDF_SOURCES:
+        raise ValueError(f"Unknown PDF source {pdf_source!r}; choose auto or {PDF_SOURCES}")
     _author_email(email)
     papers = papers if isinstance(papers, list) else [papers]
 
-    # 1) Resolve every input to a normalized record (in parallel for bare ids).
+    # Resolve every input to a normalized record (in parallel for bare ids).
     def to_record(paper):
         if isinstance(paper, dict) and paper.get("ids"):
             return paper
@@ -572,7 +582,7 @@ def zotero_save(papers, *, collections=None, tags=None, dedup=True,
     resolved = [record for record in records if not (isinstance(record, dict) and record.get("_error"))]
     errors = [record for record in records if isinstance(record, dict) and record.get("_error")]
 
-    # 2) Dedup by DOI against the existing library.
+    # Dedup by DOI against the existing library.
     skipped: list[dict] = []
     if dedup:
         existing = _zotero_existing_doi_map()
@@ -590,7 +600,7 @@ def zotero_save(papers, *, collections=None, tags=None, dedup=True,
                          "errors": len(errors)},
                 "created": [], "skipped": skipped, "attachments": [], "errors": errors}
 
-    # 3) Fetch CrossRef bib data and download PDFs for each new paper, in parallel.
+    # Fetch CrossRef bib data and download PDFs for each new paper, in parallel.
     def enrich(record):
         doi = (record.get("ids") or {}).get("doi")
         crossref = None
@@ -600,22 +610,26 @@ def zotero_save(papers, *, collections=None, tags=None, dedup=True,
             except Exception as error:  # noqa: BLE001
                 logger.warning("CrossRef lookup failed for %s: %s", doi, error)
         pdf_path = None
+        pdf_error = None
         if download:
             try:
                 routes = _resolve_fulltext_routes(record, email)
-                pdf_bytes, _ = _acquire_pdf(record, routes, scihub_proxy)
+                pdf_bytes, _ = _acquire_pdf(record, routes, scihub_proxy, source=pdf_source)
                 if pdf_bytes:
                     stem = (doi or (record.get("ids") or {}).get("arxiv") or "paper").replace("/", "_")
                     target = pathlib.Path(tempfile.gettempdir()) / f"zotero_{stem}.pdf"
                     target.write_bytes(pdf_bytes)
                     pdf_path = str(target)
+                else:
+                    pdf_error = f"No valid PDF found via {pdf_source}"
             except Exception as error:  # noqa: BLE001
-                logger.warning("PDF acquisition failed for %s: %s", doi, error)
-        return {"record": record, "crossref": crossref, "pdf_path": pdf_path}
+                pdf_error = f"PDF acquisition failed: {type(error).__name__}: {error}"
+                logger.warning("%s for %s", pdf_error, doi)
+        return {"record": record, "crossref": crossref, "pdf_path": pdf_path, "pdf_error": pdf_error}
 
     enriched = _parallel_map(enrich, resolved)
 
-    # 4) Create all items in batches of 50.
+    # Create all items in batches of 50.
     item_payloads = [_zotero_journal_item(entry["record"], entry["crossref"], tags, collections)
                      for entry in enriched]
     creation = _zotero_post_items(item_payloads)
@@ -632,8 +646,15 @@ def zotero_save(papers, *, collections=None, tags=None, dedup=True,
         if key and enriched_record["pdf_path"]:
             attach_jobs.append({"parent_key": key, "pdf_path": enriched_record["pdf_path"]})
 
-    # 5) Upload PDFs in parallel.
+    # Upload PDFs in parallel, after validating every file.
     attachments = zotero_attach(attach_jobs)["results"] if attach_jobs else []
+    uploaded_keys = {outcome.get("parent_key") for outcome in attachments if outcome.get("ok")}
+    for entry in created:
+        entry["has_pdf"] = bool(entry["key"] in uploaded_keys)
+    pdf_errors = [{"doi": entry["record"].get("ids", {}).get("doi"),
+                   "error": entry["pdf_error"]} for entry in enriched if entry["pdf_error"]]
+    pdf_errors.extend({"key": outcome.get("key"), "error": outcome.get("error")}
+                      for outcome in attachments if not outcome.get("ok"))
 
     if creation["failed"]:
         logger.warning("zotero_save: %d item(s) failed to create: %s",
@@ -641,10 +662,11 @@ def zotero_save(papers, *, collections=None, tags=None, dedup=True,
     return {
         "meta": {"operation": "zotero_save", "created": len(index_to_key),
                  "skipped": len(skipped), "attached": sum(1 for outcome in attachments if outcome.get("ok")),
-                 "failed": len(creation["failed"]), "errors": len(errors)},
+                 "failed": len(creation["failed"]) + sum(not a.get("ok") for a in attachments),
+                  "errors": len(errors), "pdf_failures": len(pdf_errors)},
         "created": created, "skipped": skipped, "attachments": attachments,
         "create_failures": creation["failed"], "errors": errors,
-        "library_version": creation["library_version"],
+        "pdf_errors": pdf_errors, "library_version": creation["library_version"],
     }
 
 

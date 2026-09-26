@@ -44,10 +44,10 @@ from collections import Counter
 def top_coauthors(works: list[dict], exclude_author: str, limit: int = 10) -> list[tuple[str, int]]:
     """Count how often each collaborator appears across an author's works, excluding the author themselves."""
     collaborators = Counter(
-        authorship["author"]["display_name"]
-        for work in works
-        for authorship in work["authorships"]
-        if authorship["author"]["display_name"] != exclude_author
+    authorship["author"]["display_name"]
+    for work in works
+    for authorship in work["authorships"]
+    if authorship["author"]["display_name"] != exclude_author
     )
     return collaborators.most_common(limit)
 ```
@@ -56,18 +56,22 @@ This was verified against Yoshua Bengio (`A5086198262`), returning Aaron Courvil
 
 ## Full-text route options (the `fulltext` tool)
 
-`scanlit.fulltext(paper_id)` checks the available routes below and returns every location found under `routes`. With `download=True` it saves the best PDF (to `out_path`, or `out_dir`, or a temp directory) and returns the absolute `pdf_path` plus citation metadata in `paper` — so the driver can attach it to Zotero and have Claude Code read the PDF directly. No text is extracted; reading is done by viewing the PDF. The route order is an implementation detail, not a required task sequence:
+`scanlit.fulltext(paper_id)` checks the available routes below and returns every location found under `routes`. With `download=True` it saves the best PDF (to `out_path`, or `out_dir`, or a temp directory) and returns the absolute `pdf_path` plus citation metadata in `paper` — so the driver can attach it to Zotero and have Claude Code read the PDF directly. No text is extracted; reading is done by viewing the PDF. The following list describes **discovery** options, not download precedence: `source="auto"` tries Sci-Hub (including `.jp`) before all discovered open-access PDF URLs, followed by Anna member and Anna slow. A named source disables all other download routes. Every downloaded candidate must open as a nonempty PDF:
 
 1. **arXiv id** → `https://arxiv.org/pdf/<id>` (verified real PDF).
-1. **PMCID** → `https://www.ebi.ac.uk/europepmc/webservices/rest/<PMCID>/fullTextXML`. The PMCID keeps its `PMC` prefix and takes no extra `PMC/` path segment (that returns 404). The NCBI alternative is `efetch.fcgi?db=pmc&id=<numeric>&rettype=xml`.
-1. **OpenAlex open-access copy** → `best_oa_location.pdf_url` from the work record.
-1. **Crossref DOI** → Unpaywall at `https://api.unpaywall.org/v2/<DOI>?email=<address>`, read `best_oa_location.url_for_pdf`. Unpaywall knows only Crossref-registered DOIs, so arXiv `10.48550/arXiv.*` DOIs 404 — use route 1 for those. The email is required but any address works.
-1. **bioRxiv / medRxiv DOI** (`10.1101/...`) → `https://api.biorxiv.org/details/<server>/<doi>` returns a `jatsxml` full-text URL.
-1. **CORE** → `https://api.core.ac.uk/v3/search/works/?q=doi:"<doi>"` (trailing slash required) returns `downloadUrl`. A `CORE_API_KEY` env var lifts the rate limit.
-1. **Sci-Hub** → a DOI fallback when no open-access copy exists. The fetcher tries the mirror list in `SCIHUB_MIRRORS` (23 mirrors, ordered by reachability — `sci-hub.st`/`.ru`/`.box`/`.red`/… first, the DNS-flaky `sci-hub.se`/`.te` last), parses the PDF link from the article page's `citation_pdf_url` meta tag, and downloads it directly (disabling certificate verification, since the mirrors require it, and handling DDoS-Guard). Pass `scihub_proxy` (an httpx proxy URL like `socks5://127.0.0.1:7890`) to route it through a proxy. `fulltext` reports `source: "scihub"`. **Sci-Hub froze new uploads around 2021**, so post-2021 papers usually are not here — the Anna's Archive fallbacks may cover some newer papers.
-1. **Anna's Archive — member API** → for papers newer than the Sci-Hub freeze. Resolves the DOI to its canonical SciDB md5 via `/scidb/<doi>` (the record page carries exactly one md5; a redirect to `/search?…` means "no record" → skip), then calls `/dyn/api/fast_download.json?md5=&key=` for a `download_url`. Uses the challenge-free official mirrors `annas-archive.gl`/`.pk`/`.gd` (the `.li`/`.org`/`.se` frontends are JS-walled). **Dormant unless `ANNAS_SECRET_KEY` is set**, and that key needs an **active paid membership** to authorize. `source: "annas_archive"`.
-1. **Anna's Archive — keyless slow tier** → the no-membership path (`/slow_download/<md5>/0/<n>`). It sits behind a DDoS-Guard browser challenge that a plain HTTP client cannot pass, so it delivers only when that wall is down or when `FLARESOLVERR_URL` (a running FlareSolverr instance) is set to solve the challenge. **Expect it to be slow — on the order of minutes per paper** (verified end-to-end at ~4 min for one PDF): Anna's deliberately throttles the keyless partner servers, and each challenge solve drives a real browser (~10-15s). Treat it as a reliable last-resort backstop, not a fast path; the member API is quicker when a key is available. `source: "annas_archive_slow"`.
-1. **Fallback** → when nothing resolves, reason over the abstract and say full text was unavailable. Never fabricate contents you could not retrieve.
+2. **PMCID** → `https://www.ebi.ac.uk/europepmc/webservices/rest/<PMCID>/fullTextXML`. The PMCID keeps its `PMC` prefix and takes no extra `PMC/` path segment (that returns 404). The NCBI alternative is `efetch.fcgi?db=pmc&id=<numeric>&rettype=xml`.
+3. **OpenAlex open-access copy** → `best_oa_location.pdf_url` from the work record.
+4. **Crossref DOI** → Unpaywall at `https://api.unpaywall.org/v2/<DOI>?email=<address>`, read `best_oa_location.url_for_pdf`. Unpaywall knows only Crossref-registered DOIs, so arXiv `10.48550/arXiv.*` DOIs 404 — use route 1 for those. The email is required but any address works.
+5. **bioRxiv / medRxiv DOI** (`10.1101/...`) → `https://api.biorxiv.org/details/<server>/<doi>` returns a `jatsxml` full-text URL.
+6. **CORE** → `https://api.core.ac.uk/v3/search/works/?q=doi:"<doi>"` (trailing slash required) returns `downloadUrl`. A `CORE_API_KEY` env var lifts the rate limit.
+7. **Sci-Hub** → first DOI route in `auto`. The fetcher tries the configured `SCIHUB_MIRRORS`, including `sci-hub.jp` (reachability is not guaranteed), parses the PDF link from the article page's `citation_pdf_url` meta tag, and downloads it directly (disabling certificate verification, since the mirrors require it, and handling DDoS-Guard). Pass `scihub_proxy` (an httpx proxy URL like `socks5://127.0.0.1:7890`) to route it through a proxy. `fulltext` reports `source: "scihub"`. **Sci-Hub froze new uploads around 2021**, so post-2021 papers usually are not here — the Anna's Archive fallbacks may cover some newer papers.
+8. **Anna's Archive — member API** → for papers newer than the Sci-Hub freeze. Resolves the DOI to its canonical SciDB md5 via `/scidb/<doi>` (the record page carries exactly one md5; a redirect to `/search?…` means "no record" → skip), then calls `/dyn/api/fast_download.json?md5=&key=` for a `download_url`. Uses the challenge-free official mirrors `annas-archive.gl`/`.pk`/`.gd` (the `.li`/`.org`/`.se` frontends are JS-walled). **Dormant unless `ANNAS_SECRET_KEY` is set**, and that key needs an **active paid membership** to authorize. `source: "annas_archive"`.
+9. **Anna's Archive — keyless slow tier** → the no-membership path (`/slow_download/<md5>/0/<n>`). It sits behind a DDoS-Guard browser challenge that a plain HTTP client cannot pass, so it delivers only when that wall is down or when `FLARESOLVERR_URL` (a running FlareSolverr instance) is set to solve the challenge. **Expect it to be slow — on the order of minutes per paper** (verified end-to-end at ~4 min for one PDF): Anna's deliberately throttles the keyless partner servers, and each challenge solve drives a real browser (~10-15s). Treat it as a reliable last-resort backstop, not a fast path; the member API is quicker when a key is available. `source: "annas_archive_slow"`.
+10. **Fallback** → when nothing resolves, reason over the abstract and say full text was unavailable. Never fabricate contents you could not retrieve.
+
+## PDF module and source precision
+
+`pdf.py` contains source adapters, the ordered dispatcher, PDF validation, and `pdf_check(path)`; `read.py` exposes `fulltext(..., source=...)` and figure reading; `zotero.py` handles collection metadata and validated attachments. To diagnose a bad OA URL without trying other sources use `fulltext(doi, download=True, source="open_access")`; to request Anna specifically choose `source="annas_archive"` or `"annas_archive_slow"`. Zotero saves accept the parallel `pdf_source=` selector and report `pdf_errors`. Offline regression tests should be kept outside the repository (for example in a system temporary directory), with no live downloads.
 
 ## Enabling the Anna's Archive fallbacks (env vars + FlareSolverr)
 
@@ -80,7 +84,7 @@ Before using the slow route, check whether FlareSolverr is already running; if n
 
 ```bash
 docker run -d --name flaresolverr --restart unless-stopped -p 8191:8191 \
-  -e LOG_LEVEL=info ghcr.io/flaresolverr/flaresolverr:latest
+    -e LOG_LEVEL=info ghcr.io/flaresolverr/flaresolverr:latest
 # health check (expect {"status": "ok", ...}):
 curl -s -X POST http://localhost:8191/v1 -H 'Content-Type: application/json' -d '{"cmd":"sessions.list"}'
 ```
