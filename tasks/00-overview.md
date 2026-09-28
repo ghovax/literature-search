@@ -1,8 +1,6 @@
 # Literature tasks: operating manual
 
-This folder replaces the `scanlit` Python package. Each file describes one task, and each is
-self-contained: the endpoints, the parameters that matter, and the traps. Work them with a shell
-(`curl`, `jq`) or a short Python snippet — there is nothing to import.
+This folder replaces the `scanlit` Python package. Each file describes one task, and each is self-contained: the endpoints, the parameters that matter, and the traps. Work them with a shell (`curl`, `jq`) or a short Python snippet — there is nothing to import.
 
 ## Files
 
@@ -30,8 +28,7 @@ self-contained: the endpoints, the parameters that matter, and the traps. Work t
 - `ANNAS_SECRET_KEY`, `FLARESOLVERR_URL` — only the optional Anna's Archive routes.
 - `OBSIDIAN_VAULT` — vault root for notes (a DOI note lives at `<vault>/<doi-prefix>/<doi-suffix>.md`).
 
-**Be polite.** OpenAlex and Crossref both accept a contact address and give better service when you
-send it (`mailto=` on OpenAlex, `mailto=` on Crossref); use the real one, not a placeholder.
+**Be polite.** OpenAlex and Crossref both accept a contact address and give better service when you send it (`mailto=` on OpenAlex, `mailto=` on Crossref); use the real one, not a placeholder.
 
 **Record shape.** Normalize everything you keep to the same fields, so any step can feed any other:
 
@@ -42,13 +39,8 @@ send it (`mailto=` on OpenAlex, `mailto=` on Crossref); use the real one, not a 
 
 `ids` is the point: it is what you pass to the next call.
 
-**Identifiers are interchangeable.** OpenAlex resolves a DOI, PMID, PMCID, or its own `W...` id; give
-it `https://doi.org/<doi>` or `pmid:<id>`. arXiv is the exception — resolve it through arXiv itself,
-because OpenAlex indexes arXiv ids unreliably.
+**Identifiers are interchangeable.** OpenAlex resolves a DOI, PMID, PMCID, or its own `W...` id; give it `https://doi.org/<doi>` or `pmid:<id>`. arXiv is the exception — resolve it through arXiv itself, because OpenAlex indexes arXiv ids unreliably.
 
-**Say what you did.** Report which sources answered, which failed or timed out, and what you filtered
-out. A silent narrowing (year window, open-access only, per-source result cap) is how a literature
-search quietly lies to you.
+**Say what you did.** Report which sources answered, which failed or timed out, and what you filtered out. A silent narrowing (year window, open-access only, per-source result cap) is how a literature search quietly lies to you.
 
-**Read before concluding.** Fetch the record; do not infer fields from the query. If a source gives no
-abstract, record that rather than writing one.
+**Read before concluding.** Fetch the record; do not infer fields from the query. If a source gives no abstract, record that rather than writing one.
