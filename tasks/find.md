@@ -1,6 +1,6 @@
 # Finding papers
 
-Goal: get from a topic or an identifier to the papers you want, with enough metadata to act on them.
+Get from a topic or an identifier to the papers you want, with enough metadata to act on them.
 
 ## Discovery: a topic, no id yet
 

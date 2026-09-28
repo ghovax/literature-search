@@ -1,6 +1,6 @@
 # Library and notes
 
-Goal: keep one durable record of what you have read, so papers and their notes are findable and citeable.
+Keep one durable record of what you have read, so papers and their notes are findable and citeable.
 
 ## Zotero
 

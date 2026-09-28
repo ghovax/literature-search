@@ -1,6 +1,6 @@
 # Reading papers
 
-Goal: get the full text and figures in front of you, so you read the real thing rather than a summary of it.
+Get the full text and figures in front of you, so you read the real thing rather than a summary of it.
 
 ## Full text
 
