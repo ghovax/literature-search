@@ -4,7 +4,7 @@ Keep one durable record of what you have read, so papers and their notes are fin
 
 ## Zotero
 
-Everything goes through the Zotero Web API: `https://api.zotero.org/users/<libraryID>` (or `/groups/<id>`), with `Zotero-API-Key` and `Zotero-API-Version: 3` on every call.
+Everything either goes through the Zotero Web API (`https://api.zotero.org/users/<libraryID>`, or `/groups/<id>`), with `Zotero-API-Key` and `Zotero-API-Version: 3` on every call, or through the local Zotero database, especially useful for read-only access (the app is almost always open, so the database access is contended) over the entire corpus and collections for information retrieval.
 
 Two facts to internalise:
 

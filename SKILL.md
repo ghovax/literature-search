@@ -8,7 +8,7 @@ description: >-
 
 # Literature Search
 
-These instructions replace the `scanlit` Python package — do not install or import it. Open the single task file below for the job at hand; each is self-contained, giving the endpoints, the parameters that matter, and the traps, and each is meant to be worked directly with a shell (`curl`, `jq`) or a short Python snippet. There is nothing to import.
+Open the single task file below for the job at hand; each is self-contained, giving the endpoints, the parameters that matter, and the traps, and each is meant to be worked directly with a shell (`curl`, `jq`) or a short Python snippet.
 
 ## Task files
 
